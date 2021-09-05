@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Moralis and Web3 -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script src="https://npmcdn.com/moralis@0.0.6/dist/moralis.js"></script>
+
+    <!-- Phaser: graphics library -->
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <title>Game</title>
+  </head>
+  <body>
+    <div class="loginButtons">
+      <button id="btn-login">Moralis Login</button>
+      <button id="btn-logout">Logout</button>
+    </div>
+
+    <script>
+      // connect to Moralis server
+      Moralis.initialize('bpd83ioUUhq4fRGHUUMyZdaFCW84uVPQJ9S7XN6U')
+      Moralis.serverURL = 'https://u8yuhnurk8he.bigmoralis.com:2053/server'
+
+      // add from here down
+      async function login() {
+        let user = Moralis.User.current()
+        if (!user) {
+          user = await Moralis.Web3.authenticate()
+        }
+        console.log('logged in user:', user)
+      }
+
+      async function logOut() {
+        await Moralis.User.logOut()
+        console.log('logged out')
+      }
+
+      document.getElementById('btn-login').onclick = login
+      document.getElementById('btn-logout').onclick = logOut
+    </script>
+  </body>
+</html>
