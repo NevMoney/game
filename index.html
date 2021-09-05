@@ -51,6 +51,13 @@
         // height: 1080,
         width: 800,
         height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 },
+            debug: false,
+          },
+        },
         scene: {
           preload: preload,
           create: create,
@@ -59,16 +66,79 @@
       }
 
       var game = new Phaser.Game(config)
+      var platforms
+      var player1
+      var player2
+      var cursors
+
+      var jumpHeight = -330
 
       //   loading assets: pics, sounds, etc.
-      function preload() {}
+      function preload() {
+        this.load.image('background', 'assets/BG.png')
+        this.load.image('groundLeft', 'assets/Tiles/Tile (14).png')
+        this.load.image('groundCenter', 'assets/Tiles/Tile (15).png')
+        this.load.image('groundRight', 'assets/Tiles/Tile (16).png')
+        this.load.image('threeBones', 'assets/Tiles/Bone (3).png')
+        this.load.image('twoBones', 'assets/Tiles/Bone (4).png')
+        this.load.image('player1', 'assets/player1.png')
+        this.load.image('player2', 'assets/player2.png')
+      }
 
       //   innitial set up
-      function create() {}
+      function create() {
+        // background
+        this.add.image(400, 300, 'background').setScale(0.53)
+
+        // platforms
+        platforms = this.physics.add.staticGroup()
+        platforms.create(554, 500, 'groundLeft').setScale(0.55).refreshBody()
+        platforms.create(618, 500, 'groundCenter').setScale(0.55).refreshBody()
+        platforms.create(682, 500, 'groundCenter').setScale(0.55).refreshBody()
+        platforms.create(752, 500, 'groundRight').setScale(0.55).refreshBody()
+        platforms.create(615, 490, 'threeBones').setScale(0.3).refreshBody()
+        platforms.create(705, 495, 'twoBones').setScale(0.3).refreshBody()
+
+        // player
+        player1 = this.physics.add
+          .sprite(630, 250, 'player1')
+          .setScale(0.32)
+          .refreshBody()
+        // player2 = this.physics.add
+        //   .sprite(400, 250, 'player2')
+        //   .setScale(0.07)
+        //   .refreshBody()
+
+        player1.setBounce(0.2)
+        player1.setCollideWorldBounds(false)
+
+        this.physics.add.collider(player1, platforms)
+
+        // player2.setBounce(0.5)
+        // player2.setCollideWorldBounds(true)
+        // player2.body.setGravityY(-305)
+        // player2.body.setGravityX(10)
+
+        // this.physics.add.collider(player2, platforms)
+
+        // cursors
+        cursors = this.input.keyboard.createCursorKeys()
+      }
 
       //   called 60 times per second -- illusion of movement: AKA gameloop
       function update() {
         //   LOGIC
+        if (cursors.left.isDown) {
+          player1.setVelocityX(-160)
+        } else if (cursors.right.isDown) {
+          player1.setVelocityX(160)
+        } else {
+          player1.setVelocityX(0)
+        }
+
+        if (cursors.up.isDown && player1.body.touching.down) {
+          player1.setVelocityY(jumpHeight)
+        }
       }
     </script>
   </body>
