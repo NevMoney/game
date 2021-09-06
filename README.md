@@ -17,6 +17,9 @@ No installation is required.
 ## Usage
 This game is PG, so anyone is welcome to play.
 
+## Tools Used
+This game was built with vanilla Javascript, HTML and CSS. Game engine was built with [Phaser 3](https://phaser.io/).
+
 ## Author
 👤 **Nev K**
 
