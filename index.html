@@ -89,6 +89,7 @@
       var game
       var platforms
       var player1
+      var competitors = {}
       var cursors
       var ghosts
       var scoreText
@@ -131,6 +132,7 @@
           frameWidth: 16,
           frameHeight: 300,
         })
+        this.load.image('wizzard', 'assets/wizzard.png')
 
         this.load.image('ghost', 'assets/ghost.png')
 
@@ -138,7 +140,7 @@
       }
 
       //   innitial set up
-      function create() {
+      async function create() {
         // background
         this.add.image(500, 500, 'background') //.setScale(0.6)
         this.add.image(120, 250, 'tombstone').setScale(0.75)
@@ -208,11 +210,34 @@
 
         this.physics.add.collider(player1, ghosts, hitGhost, null, this)
         this.physics.add.overlap(player1, coins, collectCoins, null, this)
+
+        // moralis subscription
+        let user = Moralis.User.current()
+        let query = new Moralis.Query('PlayerPosition')
+        let subscription = await query.subscribe()
+
+        subscription.on('create', (plocation) => {
+          if (plocation.get('player') != user.get('ethAddress')) {
+            // if first time showing
+            if (competitors[plocation.get('player')] == undefined) {
+              // create a sprite
+              competitors[plocation.get('player')] = this.add
+                .image(plocation.get('x'), plocation.get('y'), 'wizzard')
+                .setScale(0.05)
+            } else {
+              // update the sprite
+              competitors[plocation.get('player')].x = plocation.get('x')
+              competitors[plocation.get('player')].y = plocation.get('y')
+            }
+
+            console.log('player moved', plocation.get('player'))
+            console.log('newX', plocation.get('x'), 'newY', plocation.get('y'))
+          }
+        })
       }
 
-      //   called 60 times per second -- illusion of movement: AKA gameloop
-      function update() {
-        //   LOGIC
+      //   LOGIC
+      async function update() {
         if (cursors.left.isDown) {
           player1.setVelocityX(-160)
         } else if (cursors.right.isDown) {
@@ -225,6 +250,24 @@
           player1.setVelocityY(jumpHeight)
         }
 
+        // MULTIPLAYER LOGIC -- > tracking player position and saves only if position changes
+        if (player1.lastX != player1.x || player1.lastY != player1.y) {
+          let user = Moralis.User.current()
+
+          const PlayerPosition = Moralis.Object.extend('PlayerPosition')
+          const playerPosition = new PlayerPosition()
+
+          playerPosition.set('player', user.get('ethAddress'))
+          playerPosition.set('x', player1.x)
+          playerPosition.set('y', player1.y)
+
+          player1.lastX = player1.x
+          player1.lastY = player1.y
+
+          await playerPosition.save()
+        }
+
+        // GAME OVER LOGIC
         if (gameOver) {
           this.physics.pause()
           // add a delay before displaying button
