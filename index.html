@@ -18,8 +18,12 @@
   </head>
   <body>
     <div class="loginButtons">
-      <button id="btn-login">Moralis Login</button>
+      <button id="btn-login">Login To Play</button>
       <button id="btn-logout">Logout</button>
+    </div>
+
+    <div id="game">
+      <button id="btn-start">Play Again</button>
     </div>
 
     <script>
@@ -34,23 +38,40 @@
           user = await Moralis.Web3.authenticate()
         }
         console.log('logged in user:', user)
+        location.reload()
       }
 
       async function logOut() {
         await Moralis.User.logOut()
-        console.log('logged out')
+        // hide logout button
+
+        location.reload()
       }
 
       document.getElementById('btn-login').onclick = login
       document.getElementById('btn-logout').onclick = logOut
+      document.getElementById('btn-logout').style.display = 'none'
+      document.getElementById('btn-start').onclick = restart
+      document.getElementById('btn-start').style.display = 'none'
+
+      const ratio = Math.max(
+        window.innerWidth / window.innerHeight,
+        window.innerHeight / window.innerWidth,
+      )
+      const DEFAULT_HEIGHT = window.innerHeight
+      const DEFAULT_WIDTH = ratio * DEFAULT_HEIGHT
 
       //   phaser creating game boilerplate
       var config = {
         type: Phaser.AUTO,
-        // width: 1920,
-        // height: 1080,
-        width: 800,
-        height: 600,
+        width: window.innerWidth + 100,
+        height: window.innerHeight + 200,
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          // width: DEFAULT_WIDTH,
+          // height: DEFAULT_HEIGHT,
+        },
         physics: {
           default: 'arcade',
           arcade: {
@@ -65,64 +86,128 @@
         },
       }
 
-      var game = new Phaser.Game(config)
+      var game
       var platforms
       var player1
-      var player2
       var cursors
+      var ghosts
+      var scoreText
+      var gameOverText
+      var score = 0
+      var gameOver = false
 
-      var jumpHeight = -330
+      var jumpHeight = -100
+
+      function launch() {
+        let user = Moralis.User.current()
+        if (user) {
+          document.getElementById('btn-login').style.display = 'none'
+          document.getElementById('btn-logout').style.display = 'block'
+          console.log('userAddr', user.get('ethAddress'))
+          game = new Phaser.Game(config)
+        }
+      }
+
+      launch()
 
       //   loading assets: pics, sounds, etc.
       function preload() {
         this.load.image('background', 'assets/BG.png')
+
         this.load.image('groundLeft', 'assets/Tiles/Tile (14).png')
         this.load.image('groundCenter', 'assets/Tiles/Tile (15).png')
         this.load.image('groundRight', 'assets/Tiles/Tile (16).png')
+
+        this.load.image('boxLeft', 'assets/Tiles/Tile (1).png')
+        this.load.image('boxCenter', 'assets/Tiles/Tile (2).png')
+        this.load.image('boxRight', 'assets/Tiles/Tile (3).png')
+
         this.load.image('threeBones', 'assets/Tiles/Bone (3).png')
         this.load.image('twoBones', 'assets/Tiles/Bone (4).png')
-        this.load.image('player1', 'assets/player1.png')
-        this.load.image('player2', 'assets/player2.png')
+
+        this.load.image('tombstone', 'assets/Objects/TombStone (1).png')
+
+        this.load.spritesheet('player1', 'assets/player1.png', {
+          frameWidth: 16,
+          frameHeight: 300,
+        })
+
+        this.load.image('ghost', 'assets/ghost.png')
+
+        this.load.image('coin', 'assets/coin.png')
       }
 
       //   innitial set up
       function create() {
         // background
-        this.add.image(400, 300, 'background').setScale(0.53)
+        this.add.image(500, 500, 'background') //.setScale(0.6)
+        this.add.image(120, 250, 'tombstone').setScale(0.75)
 
         // platforms
         platforms = this.physics.add.staticGroup()
-        platforms.create(554, 500, 'groundLeft').setScale(0.55).refreshBody()
-        platforms.create(618, 500, 'groundCenter').setScale(0.55).refreshBody()
-        platforms.create(682, 500, 'groundCenter').setScale(0.55).refreshBody()
-        platforms.create(752, 500, 'groundRight').setScale(0.55).refreshBody()
-        platforms.create(615, 490, 'threeBones').setScale(0.3).refreshBody()
-        platforms.create(705, 495, 'twoBones').setScale(0.3).refreshBody()
+        platforms.create(850, 750, 'groundLeft').setScale(0.55).refreshBody()
+        platforms.create(920, 750, 'groundCenter').setScale(0.55).refreshBody()
+        platforms.create(990, 750, 'groundCenter').setScale(0.55).refreshBody()
+        platforms.create(1060, 750, 'groundCenter').setScale(0.55).refreshBody()
+        platforms.create(1130, 750, 'groundCenter').setScale(0.55).refreshBody()
+        platforms.create(1200, 750, 'groundRight').setScale(0.55).refreshBody()
+
+        platforms.create(1010, 740, 'threeBones').setScale(0.3).refreshBody()
+        platforms.create(1135, 745, 'twoBones').setScale(0.3).refreshBody()
+
+        platforms.create(600, 600, 'boxLeft').setScale(0.55).refreshBody()
+        platforms.create(670, 600, 'boxRight').setScale(0.55).refreshBody()
+        platforms.create(862, 500, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(200, 300, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(130, 300, 'boxLeft').setScale(0.55).refreshBody()
+        platforms.create(375, 450, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(752, 420, 'boxCenter').setScale(0.55).refreshBody()
+
+        platforms.create(50, 900, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(220, 900, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(280, 900, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(340, 900, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(500, 900, 'boxCenter').setScale(0.55).refreshBody()
+        platforms.create(750, 900, 'boxCenter').setScale(0.55).refreshBody()
 
         // player
         player1 = this.physics.add
-          .sprite(630, 250, 'player1')
+          .sprite(1000, 550, 'player1')
           .setScale(0.32)
           .refreshBody()
-        // player2 = this.physics.add
-        //   .sprite(400, 250, 'player2')
-        //   .setScale(0.07)
-        //   .refreshBody()
 
         player1.setBounce(0.2)
         player1.setCollideWorldBounds(false)
 
-        this.physics.add.collider(player1, platforms)
-
-        // player2.setBounce(0.5)
-        // player2.setCollideWorldBounds(true)
-        // player2.body.setGravityY(-305)
-        // player2.body.setGravityX(10)
-
-        // this.physics.add.collider(player2, platforms)
-
         // cursors
         cursors = this.input.keyboard.createCursorKeys()
+
+        // points
+        scoreText = this.add.text(16, 16, 'score: 0', {
+          fontSize: '32px',
+          fill: '#fff',
+        })
+
+        // coins
+        coins = this.physics.add.group({
+          key: 'coin',
+          repeat: 11,
+          setXY: { x: 12, y: 0, stepX: 80 },
+        })
+
+        coins.children.iterate(function (child) {
+          child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8))
+        })
+
+        // ghost
+        ghosts = this.physics.add.group()
+
+        this.physics.add.collider(player1, platforms)
+        this.physics.add.collider(coins, platforms)
+        this.physics.add.collider(ghosts, platforms)
+
+        this.physics.add.collider(player1, ghosts, hitGhost, null, this)
+        this.physics.add.overlap(player1, coins, collectCoins, null, this)
       }
 
       //   called 60 times per second -- illusion of movement: AKA gameloop
@@ -139,6 +224,79 @@
         if (cursors.up.isDown && player1.body.touching.down) {
           player1.setVelocityY(jumpHeight)
         }
+
+        if (gameOver) {
+          this.physics.pause()
+          // add a delay before displaying button
+          setTimeout(() => {
+            document.getElementById('btn-start').style.display = 'block'
+          }, 1000)
+        }
+
+        // if player falls from the game, restart
+        if (player1.y > 1100) {
+          gameOver = true
+          gameOverText = this.add.text(420, 300, `GAME OVER!`, {
+            fontSize: '50px',
+            fill: '#f709eb',
+          })
+        }
+
+        // as player1 collects coins, the jump height increases
+        if (score == 10) {
+          jumpHeight = -150
+        } else if (score == 20) {
+          jumpHeight = -210
+        } else if (score == 30) {
+          jumpHeight = -260
+        } else if (score == 40) {
+          jumpHeight = -300
+        } else if (score >= 50) {
+          jumpHeight = -330
+        }
+      }
+
+      function restart() {
+        location.reload()
+      }
+
+      function collectCoins(player1, coin) {
+        coin.disableBody(true, true)
+
+        score += 10
+        scoreText.setText('Score: ' + score)
+
+        if (coins.countActive(true) === 0) {
+          coins.children.iterate(function (child) {
+            child.enableBody(true, child.x, 0, true, true)
+          })
+
+          var x =
+            player1.x < 400
+              ? Phaser.Math.Between(400, 800)
+              : Phaser.Math.Between(0, 400)
+
+          var ghost = ghosts.create(x, 16, 'ghost')
+
+          ghost.setBounce(1)
+          ghost.setCollideWorldBounds(true)
+          ghost.setVelocity(Phaser.Math.Between(-200, 200), 20)
+          ghost.allowGravity = false
+        }
+      }
+
+      function hitGhost(player1, ghost) {
+        this.physics.pause()
+
+        player1.setTint(0xff0000)
+
+        // player1.anims.play('turn')
+
+        gameOver = true
+        gameOverText = this.add.text(450, 300, 'GAME OVER', {
+          fontSize: '50px',
+          fill: '#f709eb',
+        })
       }
     </script>
   </body>
