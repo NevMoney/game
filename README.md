@@ -2,6 +2,8 @@
 
 This is a fun project I created to learn more about game development. It is a 2D mutlipli-player game where the goal is to get the highest score and survive the ghosts.
 
+Huge THANKS to Moralis team for the inspiration and the code and Aavegotchi for the sprites.
+
 ### 🏠 [Homepage](https://crypto-game.netlify.app/)
 
 Feel free to visit the demo to see how the game works.
